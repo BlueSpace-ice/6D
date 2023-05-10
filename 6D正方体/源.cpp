@@ -1,62 +1,47 @@
-﻿#include <opencv2/opencv.hpp>
-#include <iostream>
-#include <sstream>
-#include <vector>
-#include <algorithm>
-#include <climits>
-#include <cmath>
-#include <limits>
-#define DEBUG1                         //画顶点
-#define DEBUG2                       //画斜矩形
-#define DEBUG3                       //画三角形
-#define COLOR 0//0红色，1蓝色
-using namespace std;
-using namespace cv;
+﻿#include"源.hpp"
 
-
-
-// 三角形结构体，包括三条直线的倾角，三个点的坐标
-struct Triangle {
-	double angle1;
-	double angle2;
-	double angle3;
-	double edge_len1;
-	double edge_len2;
-	double edge_len3;
-	vector<Point2f> triangle_points;
-};
-
-bool check_overlap(Mat& img, RotatedRect rect1, RotatedRect rect2) {
-	// Convert image to grayscale
-
-	// Create mask for first rectangle
-	Mat mask1 = Mat::zeros(img.size(), CV_8UC1);
-	Point2f rect1_points[4];
-	rect1.points(rect1_points);
-	vector<Point2f> v_points1;
-
-	for (int i = 0; i < 4; i++)
-		v_points1.push_back(rect1_points[i]);
-	cout << "v_points1" << v_points1.size() << endl;
-	fillConvexPoly(mask1, v_points1, Scalar(255), -1, 0);
-
-	// Create mask for second rectangle
-	Mat mask2 = Mat::zeros(img.size(), CV_8UC1);
-	Point2f rect2_points[4];
-	rect2.points(rect2_points);
-	vector<Point2f> v_points2;
-	for (int i = 0; i < 4; i++)
-		v_points2.push_back(rect2_points[i]);
-	fillConvexPoly(mask2, v_points2, Scalar(255), -1, 0);
-	imshow("mask1", mask1);
-	imshow("mask2", mask2);
-	// Apply masks to thresholded image
-	return 0;
+std::ofstream myfile("D:\\桌面\\output.txt");
+bool check_overlap(Mat& img, Triangle tri1, Triangle tri2)
+{
+	cout << tri1.triangle_points << endl << tri2.triangle_points << endl;
+	cout << tri1.edge_len1 << "   " << tri1.edge_len2 << "   " << tri1.edge_len3 << "   " << tri2.edge_len1 << "   " << tri2.edge_len2 << "   " << tri2.edge_len3 << "   " << endl;
+	cout << endl;
+	cout << tri1.triangle_points.size() << tri2.triangle_points.size()<<endl<<endl;
+    cout<<"uauaua"<<endl;
+	if (tri1.edge_len1 <= 10 || tri1.edge_len2 <= 10 || tri1.edge_len3 <= 10 || tri2.edge_len1 <= 10 || tri2.edge_len2 <= 10 || tri2.edge_len3 <= 10)
+	{
+		cout << "ppppp" << endl;
+		return 0;
+	}
+	cout << "dfaefasdfk" << endl;
+	// 在两个空白图像中画出两个三角形
+	Mat img1 = Mat::zeros(img.size(), CV_8UC1);
+	Mat img2 = Mat::zeros(img.size(), CV_8UC1);
+	if (tri1.triangle_points.size()==3 && tri2.triangle_points.size() == 3) 
+	{
+		vector<vector<Point>> triangles1 = { {tri1.triangle_points[0], tri1.triangle_points[1], tri1.triangle_points[2]} };
+		vector<vector<Point>> triangles2 = { {tri2.triangle_points[0], tri2.triangle_points[1], tri2.triangle_points[2]} };
+		cout << "lalala" << endl;
+		fillPoly(img1, triangles1, Scalar(255));
+		fillPoly(img2, triangles2, Scalar(255));
+		cout << "bababa" << endl;
+		// 检测两个三角形是否有重叠
+		Mat result;
+		bitwise_and(img1, img2, result);
+		namedWindow("mask1", WINDOW_NORMAL);
+		namedWindow("mask2", WINDOW_NORMAL);
+		namedWindow("result", WINDOW_NORMAL);
+		imshow("mask1", img1);
+		imshow("mask2", img2);
+		imshow("result", result);
+		waitKey(1);
+		cout << "mamama" << endl;
+		if (countNonZero(result) == 0)
+			return 0;
+		else
+			return 1;
+	}
 }
-
-
-//double类型最大值
-const double INF = numeric_limits<double>::infinity();
 
 //图像预处理
 Mat precessing(Mat image)
@@ -91,10 +76,10 @@ void find_min_diff_indices(double arr[], int n, int& ind1, int& ind2, int& ind3)
 		}
 	}
 
-	std::cout << "三个下标的数组值：" << endl;
-	std::cout << arr[idx1] << "  " << arr[idx2] << "   " << arr[idx3] << endl;
-	std::cout << "三个下标的值：" << endl;
-	std::cout << idx1 << "   " << idx2 << "   " << idx3 << endl;
+	//std::cout << "三个下标的数组值：" << endl;
+	//std::cout << arr[idx1] << "  " << arr[idx2] << "   " << arr[idx3] << endl;
+	//std::cout << "三个下标的值：" << endl;
+	//std::cout << idx1 << "   " << idx2 << "   " << idx3 << endl;
 
 	ind1 = idx1;
 	ind2 = idx2;
@@ -123,15 +108,14 @@ vector<Point2f> findApexs(vector<RotatedRect> minRect, vector<vector<Point>> con
 {
 	//中心坐标计算
 	float x = 0, y = 0;
-	std::cout << "findApexs中的index:";
-	for (int i = 0; i < index.size(); i++)
-		std::cout << index[i];
-	std::cout << endl;
+	//std::cout << "findApexs中的index:";
+	//for (int i = 0; i < index.size(); i++)
+	//	std::cout << index[i];
+	//std::cout << endl;
 	for (int i = 0; i < 4; i++)
 	{
 		x += minRect[index[i]].center.x;
 		y += minRect[index[i]].center.y;
-
 	}
 	x /= 4;
 	y /= 4;//Point(x,y)是中心点
@@ -198,7 +182,6 @@ vector<Triangle> detectTriangles(const vector<vector<Point>>& contours, Mat& cap
 
 	return triangles;
 }
-
 
 //找第四个点，返回下标
 int find_four_apex(vector<vector<Point>> contours,vector<Triangle> triangle, vector<int> findMinindex,Mat cap)
@@ -278,9 +261,9 @@ vector<int> handleLight(vector<vector<Point>> contours,vector<RotatedRect> minRe
 	vector<vector<Point>> tmp_contours;
 
 	findMinindex.push_back(find_four_apex(tmp_contours,triangle,findMinindex,cap));
-	std::cout << "所有找到的斜矩形面积：" << endl;
-	for (int i = 0; i < minRect.size(); i++)
-		std::cout << minRect[i].size.area() << "   ";
+	//std::cout << "所有找到的斜矩形面积：" << endl;
+	//for (int i = 0; i < minRect.size(); i++)
+	//	std::cout << minRect[i].size.area() << "   ";
 	//std::cout << endl << "所有三角形的信息：" << endl;
 	//for (int i = 0; i < triangle.size(); i++)
 	//	std::cout <<"第一个" << triangle[i].angle1 << " 第二个  " << triangle[i].angle2 << "  第三个  " << triangle[i].angle3 << "  三个点   " << triangle[i].triangle_points << endl;
@@ -310,26 +293,37 @@ vector<Point2f> handleMat(Mat src, Mat image)
 	for (int i = 0; i < contours.size(); i++)
 		minRect[i] = minAreaRect(contours[i]);
 	vector<Triangle> triangles = detectTriangles(contours, image);//调试，这个有用
-	std::cout << minRect.size() << contours.size() << triangles.size() << endl;
+
 	//将按照斜矩形的面积轮廓和斜矩形都排序，并保持轮廓和斜矩形变长数组的坐标一一对应
-	vector<RotatedRect> handle_minRect(minRect.size());
-	vector<vector<Point>> handle_contours(contours.size());
-	vector<Triangle> handle_triangles(triangles.size());
+	vector<RotatedRect> handle_minRect(minRect.size()+5);
+	vector<vector<Point>> handle_contours(contours.size()+5);
+	vector<Triangle> handle_triangles(triangles.size()+5);
 	//删除相交的轮廓，保留大的
-	//for (int i = 0; i < contours.size(); i++) {
-	//	for (int j = 0; j < contours.size(); j++)
-	//	{
-	//		if (check_overlap(image,minRect[i], minRect[j]))
-	//			if (minRect[i].size.area() > minRect[j].size.area()) {
-	//				minRect[j] = RotatedRect(cv::Point2f(100, 100), cv::Size2f(0, 0), 0);
-	//				contours[i].clear();
-	//			}
-	//			else {
-	//				minRect[i] = RotatedRect(cv::Point2f(100, 100), cv::Size2f(0, 0), 0);
-	//				contours[j].clear();
-	//			}
-	//	}
-	//}
+	for (int i = 0; i < triangles.size()-1; i++) {
+		cout << "大循环前的" << endl;
+		for (int j = 0; j < triangles.size()-1; j++)
+		{
+			cout << "循环前的" << endl;
+			if (check_overlap(image, triangles[i], triangles[j]))
+			{
+				myfile << "大函数里的"<<triangles[i].triangle_points << endl << triangles[j].triangle_points << endl << i << "   " << j << endl;
+				if (minRect[i].size.area() > minRect[j].size.area()) {
+					minRect[j] = RotatedRect(cv::Point2f(100, 100), cv::Size2f(0, 0), 0);
+					contours[j].clear();
+					triangles[j] = *new Triangle;
+				}
+				else {
+					minRect[i] = RotatedRect(cv::Point2f(100, 100), cv::Size2f(0, 0), 0);
+					contours[i].clear();
+					triangles[i] = *new Triangle;
+				}
+			}
+			cout << "循环后的" << endl;
+			cout << triangles.size() << "   " << i << "    " << j << endl;
+		}
+		cout << "大循环后的" << endl;
+		cout << triangles.size() << endl;
+	}
 	//保证斜矩形与轮廓的下标一样
 	//自己写的选择排序(不想优化),按照minRect的面积大小排序
 	for (int i = 0; i < contours.size(); i++) {
@@ -437,99 +431,80 @@ void rotationMatrixToEulerAngles(Mat& R, double& roll, double& pitch, double& ya
 	}
 }
 
-//PnP解算 poi3是相机坐标系原点到世界坐标系原点的距离
-void solveXYZ(Point3f& poi3, vector<Point2f> vertices)
+//pnp算法
+void solveXYZ(vector<Point2f> vertices)
 {
 	double half_x;
 	double half_y;
 	double width_target;
 	double height_target;
 
-	double cam1[3][3] = {                                  //相机内参矩阵(这些参数都是从队内代码里抠出来的)
+	double cam1[3][3] = {                                  //内参矩阵
 		1689.2, 0, 624.7565,
 		0, 1688.1, 496.4914,
 		0, 0, 1 };
 
-	double distCoeff1[5] = { 0.0163, -0.3351, 0, 0, 0 };   // 相机畸变系数
+	double distCoeff1[5] = { 0.0163, -0.3351, 0, 0, 0 };   //畸变参数
 
 	Mat cam_matrix = Mat(3, 3, CV_64FC1, cam1);
 	Mat distortion_coeff = Mat(5, 1, CV_64FC1, distCoeff1);
 
-	width_target = 24;             //兑换处尺寸
+	width_target = 24;             //长宽
 	height_target = 24;
 
-	std::vector<cv::Point2f> Points2D;    //像素点坐标
+	std::vector<cv::Point2f> Points2D;    //图片坐标
 	//Point2f vertices[4];
 	Points2D.push_back(vertices[1]);
 	Points2D.push_back(vertices[2]);
 	Points2D.push_back(vertices[3]);
 	Points2D.push_back(vertices[0]);
 
-	std::vector<cv::Point3f> Point3d;     //世界坐标系坐标
+	std::vector<cv::Point3f> Point3d;     //世界坐标
 
 	half_x = (width_target) / 2.0;
 	half_y = (height_target) / 2.0;
 
+	Point3d.push_back(Point3f(-half_x, half_y, 0));
 	Point3d.push_back(Point3f(-half_x, -half_y, 0));
 	Point3d.push_back(Point3f(half_x, -half_y, 0));
 	Point3d.push_back(Point3f(half_x, half_y, 0));
-	Point3d.push_back(Point3f(-half_x, half_y, 0));
 
-	Mat rot1 = Mat::eye(3, 3, CV_64FC1);
-	Mat trans1 = Mat::zeros(3, 1, CV_64FC1);
+	Mat rot1 = Mat::eye(3, 3, CV_64FC1);//旋转矩阵
+	Mat trans1 = Mat::zeros(3, 1, CV_64FC1);//平移矩阵
 
 	cv::solvePnP(Point3d, Points2D, cam_matrix, distortion_coeff, rot1, trans1, false);
+	Mat_<double> rot_mat;
+	cv::Rodrigues(rot1, rot_mat);
 
-	double x1 = trans1.at<double>(0, 0);
-	double y1 = trans1.at<double>(1, 0);
-	double z1 = trans1.at<double>(2, 0);
-	double dist1 = sqrt(trans1.at<double>(0, 0) * trans1.at<double>(0, 0) + trans1.at<double>(1, 0) * trans1.at<double>(1, 0) + trans1.at<double>(2, 0) * trans1.at<double>(2, 0));
+	double sy = std::sqrt(rot_mat.at<double>(0, 0) * rot_mat.at<double>(0, 0) + rot_mat.at<double>(1, 0) * rot_mat.at<double>(1, 0));
 
-	float pit_angle = -atan(y1 / z1) * 180 / CV_PI;
-	float yaw_angle = -atan(x1 / z1) * 180 / CV_PI;
+	bool singularot_mat = sy < 1e-6;
 
-	std::cout << "x轴：" << x1 << "    " << "y轴： " << y1 << "    " << "Z轴： " << z1 << endl;
-	std::cout << "PNP的角度p1,y1===  " << pit_angle << "   " << yaw_angle << "   " << endl;
-	std::cout << "距离：" << dist1 << endl;
-	std::cout << rot1.at<double>(0) / CV_PI * 180 << endl;
-	std::cout << rot1.at<double>(1) / CV_PI * 180 << endl;
-	std::cout << rot1.at<double>(2) / CV_PI * 180 << endl;
-
-	poi3 = Point3f(x1, y1, z1);
-
-	std::cout << "距离向量" << poi3 << endl;
-	//chatgpt的代码
-	// Convert the rotation vector to rotation matrix
-	cv::Mat R;
-	cv::Rodrigues(rot1, R);
-
-	// Calculate the Euler angles from the rotation matrix
-	double sy = std::sqrt(R.at<double>(0, 0) * R.at<double>(0, 0) + R.at<double>(1, 0) * R.at<double>(1, 0));
-	double yaw, pitch, roll;
-	bool singular = sy < 1e-6; // avoid division by zero
-	if (!singular)
+	double x, y, z;
+	if (!singularot_mat)
 	{
-		yaw = std::atan2(R.at<double>(1, 0), R.at<double>(0, 0));
-		pitch = std::atan2(-R.at<double>(2, 0), sy);
-		roll = std::atan2(R.at<double>(2, 1), R.at<double>(2, 2));
+		x = std::atan2(rot_mat.at<double>(2, 1), rot_mat.at<double>(2, 2));
+		y = std::atan2(-rot_mat.at<double>(2, 0), sy);
+		z = std::atan2(rot_mat.at<double>(1, 0), rot_mat.at<double>(0, 0));
 	}
 	else
 	{
-		yaw = std::atan2(-R.at<double>(0, 1), R.at<double>(1, 1));
-		pitch = std::atan2(-R.at<double>(2, 0), sy);
-		roll = 0;
+		x = std::atan2(-rot_mat.at<double>(1, 2), rot_mat.at<double>(1, 1));
+		y = std::atan2(-rot_mat.at<double>(2, 0), sy);
+		z = 0;
 	}
-	double yaw_deg = cv::fastAtan2(std::sin(yaw), std::cos(yaw));
-	double pitch_deg = cv::fastAtan2(std::sin(pitch), std::cos(pitch));
-	double roll_deg = cv::fastAtan2(std::sin(roll), std::cos(roll));
 
-	std::cout << "以下是一些欧拉角" << endl;
-	std::cout << yaw << "   " << pitch << "   " << roll<<endl;
-	std::cout << yaw_deg << "   " << pitch_deg << "    " << roll_deg << endl;
-	//rotationMatrixToEulerAngles(rot1, roll, pitch, yaw);
-	//std::cout << "roll:" << roll << "pitch:" << pitch << "yaw:" << yaw << endl;
+	// Convert angles to degrees
+	x = x * 180.0 / CV_PI;
+	y = y * 180.0 / CV_PI;
+	z = z * 180.0 / CV_PI;
+	/*cout << trans1 << endl;
+	cout << "z轴转：" << x << "   x轴转：" << y << "   y轴转：" << z << endl;*/
+	cout << trans1 << endl;
+	cout << "z轴转：" << x << "    x轴转：" << y << "   y轴转：" << z << endl;
 }
 
+//提供给main的全调用函数
 void all(Mat image)
 {
 	// 导入图像
@@ -540,24 +515,43 @@ void all(Mat image)
 	vertexs = handleMat(processmat, image);//返回四个顶点
 	if (vertexs.size() != 4)
 		return;
-	Point3f point3;
-	solveXYZ(point3, vertexs);
+
 	return ;
 }
-
+#ifdef ISMAP
 int main()
 {
 	VideoCapture capture("D:\\桌面\\兑换站视频\\true_video.mp4");
 	Mat image;
 	while (1) {
 		capture.read(image);
-		all(image);
-		cv::namedWindow("image", WINDOW_NORMAL);
-		imshow("image", image);
-		std::cout << endl << endl << endl;
-		int c=waitKey(1);
-		if (c == 27)
-			break;
+		if (!image.empty())
+		{
+			all(image);
+			cv::namedWindow("image", WINDOW_NORMAL);
+			imshow("image", image);
+			std::cout << endl << endl << endl;
+			int c = waitKey(1);
+			if (c == 27)
+				break;
+		}
 	}
 
 }
+
+#else
+int main()
+{
+	// 导入图像
+	Mat image = imread("D:\\桌面\\兑换站视频\\5.jpg");
+	Mat processmat = precessing(image);
+	vector<Point2f> vertexs;//这是四个顶点
+	vertexs = handleMat(processmat, image);
+	cout << "四个点：" << endl;
+	for (int i = 0; i < vertexs.size(); i++)
+		cout << vertexs[i] << endl;
+	solveXYZ(vertexs);
+	waitKey(0);
+	return 0;
+}
+#endif // ISMAP 1}
